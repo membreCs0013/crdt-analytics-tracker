@@ -1,3 +1,5 @@
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+# Docker tests run with BypassSandbox=true (require network access)
+# Non-docker tests run sandboxed normally

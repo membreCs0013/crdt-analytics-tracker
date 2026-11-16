@@ -1,0 +1,21 @@
+# Ignore test deps and dev artifacts
+.git
+.gitignore
+.hypothesis
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.venv
+venv
+data/
+tests/
+demo.py
+pyproject.toml
+requirements.txt
+*.md
+cluster/
+docker-compose.yml
+Dockerfile
+.dockerignore
