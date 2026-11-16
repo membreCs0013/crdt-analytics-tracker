@@ -91,6 +91,7 @@ class NodeContext:
 def create_app(config: Config) -> Flask:
     """Application factory creating a testable Flask app instance without global state."""
     app = Flask(__name__)
+    app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024  # 1 MB – returns 413 on oversized body
     ctx = NodeContext(config)
     app.extensions["node"] = ctx
 
@@ -196,6 +197,27 @@ def create_app(config: Config) -> Flask:
             return jsonify({
                 "error": "Payload must contain 'sender' (string) and 'state' (dictionary)"
             }), 400
+
+        # Validate sender node_id length (max 64 chars)
+        if len(sender) > 64:
+            return jsonify({"error": "sender node_id exceeds maximum length of 64 characters"}), 400
+
+        # Enforce metric whitelist: reject foreign metrics injected by rogue peers
+        unknown_metrics = [m for m in remote_state if m not in ctx.config.metrics]
+        if unknown_metrics:
+            return jsonify({"error": f"Unknown metrics rejected (not in whitelist): {unknown_metrics}"}), 400
+
+        # Reject values exceeding JavaScript safe integer limit (2^53) or non-int types
+        _MAX_SAFE_INT = 2 ** 53
+        for _metric_key, _node_counts in remote_state.items():
+            if not isinstance(_node_counts, dict):
+                # from_dict will catch this, but fail early with a clear message
+                return jsonify({"error": f"Metric '{_metric_key}' value must be a dict"}), 400
+            for _node_key, _count_val in _node_counts.items():
+                if isinstance(_count_val, bool) or not isinstance(_count_val, int):
+                    return jsonify({"error": f"Counter values must be integers, got {type(_count_val).__name__}"}), 400
+                if _count_val > _MAX_SAFE_INT:
+                    return jsonify({"error": f"Counter value {_count_val} exceeds maximum safe integer (2^53)"}), 400
 
         # Check partition block
         if ctx.is_peer_blocked(sender):

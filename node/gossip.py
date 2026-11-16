@@ -90,6 +90,10 @@ class GossipManager:
             peer_id: requests.Session() for peer_id in self.peers
         }
 
+        # Track failure state per peer to avoid log spam.
+        # True = peer was unreachable on the last attempt.
+        self._peer_failing: dict[str, bool] = {peer_id: False for peer_id in self.peers}
+
         self._stop_event = threading.Event()
         self._thread: threading.Thread | None = None
 
@@ -219,6 +223,15 @@ class GossipManager:
                     self.stats.last_sync[peer_id] = now
                     self.stats.last_sync_global = now
 
+                # Log recovery if peer was previously failing
+                if self._peer_failing.get(peer_id):
+                    logger.info(
+                        "[%s] Peer %s recovered (reconnected successfully)",
+                        self.node_id,
+                        peer_id,
+                    )
+                    self._peer_failing[peer_id] = False
+
                 # Peer replied with its own state (push-pull)
                 try:
                     resp_json = resp.json()
@@ -251,21 +264,40 @@ class GossipManager:
                     self.stats.failures += 1
 
         except (requests.Timeout, requests.ConnectionError) as net_err:
-            logger.warning(
-                "[%s] Gossip connection failure to peer %s (%s): %s",
-                self.node_id,
-                peer_id,
-                endpoint,
-                net_err.__class__.__name__,
-            )
+            # Only log WARNING on first failure; use DEBUG for subsequent ones in the same episode
+            if not self._peer_failing.get(peer_id):
+                logger.warning(
+                    "[%s] Peer %s unreachable at %s (%s) -- suppressing repeats until recovery",
+                    self.node_id,
+                    peer_id,
+                    endpoint,
+                    net_err.__class__.__name__,
+                )
+                self._peer_failing[peer_id] = True
+            else:
+                logger.debug(
+                    "[%s] Peer %s still unreachable (%s)",
+                    self.node_id,
+                    peer_id,
+                    net_err.__class__.__name__,
+                )
             with self._stats_lock:
                 self.stats.failures += 1
         except Exception as exc:
-            logger.warning(
-                "[%s] Unexpected error gossiping to peer %s: %s",
-                self.node_id,
-                peer_id,
-                exc,
-            )
+            if not self._peer_failing.get(peer_id):
+                logger.warning(
+                    "[%s] Unexpected error gossiping to peer %s: %s -- suppressing repeats",
+                    self.node_id,
+                    peer_id,
+                    exc,
+                )
+                self._peer_failing[peer_id] = True
+            else:
+                logger.debug(
+                    "[%s] Peer %s error (suppressed): %s",
+                    self.node_id,
+                    peer_id,
+                    exc,
+                )
             with self._stats_lock:
                 self.stats.failures += 1
