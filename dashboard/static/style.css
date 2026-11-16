@@ -1,0 +1,275 @@
+/* style.css — CRDT Analytics Dashboard */
+
+:root {
+  --bg: #0f1117;
+  --bg2: #1a1d27;
+  --bg3: #242736;
+  --border: #2e3347;
+  --text: #e2e8f0;
+  --text-muted: #8892a4;
+  --green: #22c55e;
+  --orange: #f97316;
+  --red: #ef4444;
+  --blue: #3b82f6;
+  --purple: #a855f7;
+  --yellow: #eab308;
+  --radius: 8px;
+  --shadow: 0 2px 8px rgba(0,0,0,.4);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ============================================================ HEADER */
+header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: .5px; }
+
+.badge {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+}
+.badge-converged  { background: var(--green);  color: #022c14; }
+.badge-diverged   { background: var(--orange); color: #3d1a00; }
+.badge-unknown    { background: var(--bg3);    color: var(--text-muted); }
+
+.conv-time { font-size: .8rem; color: var(--text-muted); }
+
+.global-totals { display: flex; gap: 24px; }
+.global-metric { display: flex; flex-direction: column; align-items: flex-end; }
+.metric-label { font-size: .7rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; }
+.metric-value { font-size: 1.8rem; font-weight: 800; line-height: 1; }
+
+/* ============================================================ OFFLINE */
+.offline-banner {
+  background: var(--red);
+  color: #fff;
+  text-align: center;
+  padding: 10px;
+  font-weight: 600;
+}
+.hidden { display: none; }
+
+/* ============================================================ TOASTS */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.toast {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--blue);
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  font-size: .88rem;
+  min-width: 220px;
+  max-width: 380px;
+  box-shadow: var(--shadow);
+  animation: slideIn .2s ease;
+}
+.toast.error { border-left-color: var(--red); }
+.toast.success { border-left-color: var(--green); }
+@keyframes slideIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+
+/* ============================================================ MAIN */
+main { padding: 24px; display: flex; flex-direction: column; gap: 28px; max-width: 1600px; margin: 0 auto; }
+.section { }
+h2 { font-size: 1rem; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 14px; }
+
+/* ============================================================ NODE CARDS */
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+.node-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: var(--shadow);
+  transition: border-color .2s;
+}
+.node-card:hover { border-color: #4a5278; }
+.node-card.status-down { opacity: .55; border-color: var(--red); }
+.node-card.status-isolated { border-color: var(--purple); }
+.node-card.status-partitioned { border-color: var(--orange); }
+
+.node-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.node-id { font-weight: 700; font-size: 1rem; }
+.node-status-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-up         { background: var(--green); }
+.dot-down       { background: var(--red); }
+.dot-isolated   { background: var(--purple); }
+.dot-partitioned { background: var(--orange); }
+
+.node-metrics { display: flex; flex-direction: column; gap: 4px; }
+.node-metric-row { display: flex; justify-content: space-between; font-size: .88rem; }
+.node-metric-name { color: var(--text-muted); }
+.node-metric-val { font-weight: 600; }
+
+.node-footer { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.hash-chip {
+  font-family: monospace;
+  font-size: .72rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--bg3);
+  letter-spacing: .5px;
+}
+.exec-tag {
+  font-size: .7rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--purple);
+  color: #fff;
+  font-weight: 600;
+}
+.blocked-tag {
+  font-size: .7rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--orange);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ============================================================ CHARTS */
+.charts-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 900px) { .charts-section { grid-template-columns: 1fr; } }
+.chart-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  min-height: 280px;
+}
+.chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+select {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: .88rem;
+  cursor: pointer;
+}
+
+/* ============================================================ CONTROLS */
+.controls-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+}
+.ctrl-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ctrl-card-wide { grid-column: span 2; }
+@media (max-width: 700px) { .ctrl-card-wide { grid-column: span 1; } }
+.ctrl-card h3 { font-size: .9rem; font-weight: 600; color: var(--text-muted); }
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: .82rem;
+  color: var(--text-muted);
+}
+input[type=number] {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: .88rem;
+  width: 100%;
+}
+.ctrl-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity .15s, transform .1s;
+  flex: 1;
+}
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:not(:disabled):hover { opacity: .88; }
+.btn:not(:disabled):active { transform: scale(.97); }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-success { background: var(--green); color: #022c14; }
+.btn-danger  { background: var(--red); color: #fff; }
+.btn-warning { background: var(--orange); color: #3d1a00; }
+
+/* Partition checkboxes */
+.partition-layout { display: flex; gap: 20px; }
+.partition-group { flex: 1; }
+.partition-group strong { font-size: .82rem; color: var(--text-muted); display: block; margin-bottom: 6px; }
+.checkbox-group { display: flex; flex-direction: column; gap: 4px; }
+.checkbox-group label {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: .88rem;
+  cursor: pointer;
+}
+input[type=checkbox] { accent-color: var(--blue); width: 14px; height: 14px; }
+
+/* ============================================================ EVENT LOG */
+.event-log {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  font-family: monospace;
+  font-size: .8rem;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.event-row { display: flex; gap: 10px; }
+.event-ts { color: var(--text-muted); flex-shrink: 0; }
+.event-action { color: var(--blue); }
+.event-result { color: var(--text); }
+.event-result.err { color: var(--red); }

@@ -199,3 +199,109 @@ pytest tests/test_node_api.py -v
 # Run 3-node cluster integration tests
 pytest tests/test_node_integration.py -v
 ```
+
+
+---
+
+## Dashboard
+
+The live dashboard is a host-side Flask app (not containerised) that polls all
+cluster nodes in parallel, computes CRDT-merged global totals, and provides
+control endpoints that invoke Docker CLI commands directly.
+
+### Why host-side?
+
+Running the dashboard inside a container would require Docker-in-Docker (DinD)
+to call `docker exec` or `docker network disconnect`.  DinD requires
+`--privileged`, introduces a second daemon, and is fragile in demo settings.
+On the host the Docker socket is available natively, and the dashboard can
+reach both the cluster's published ports and run `docker exec` for
+network-isolated containers that have lost their published ports.
+
+### How global totals are computed (CRDT merge)
+
+Each node's `/state` response includes a `per_node` dict of the form
+`{metric: {node_id: count}}`.  This is the full G-Counter vector as seen by
+that node.  The dashboard does **not** sum node totals (which would
+double-count in a converged cluster).  Instead it computes the LUB:
+
+```
+merged[metric][node_id] = max over all reachable nodes of per_node[metric][node_id]
+global[metric]          = sum(merged[metric].values())
+```
+
+This is identical to merging all GCounters with `.merge()` and reading
+`.value()`.  It is correct during partitions (each partition's contribution is
+visible separately) and after healing (the max collapses duplicates).
+
+### Exec fallback for isolated nodes
+
+`docker network disconnect crdt-net nodeX` removes the container from the
+overlay network, which also drops its published port mapping.  The dashboard
+detects this: when an HTTP fetch to `127.0.0.1:PORT` fails it checks whether
+the container is running (`docker inspect --format '{{.State.Running}}' nodeX`)
+and, if so, calls
+`docker exec nodeX python -c 'urllib.request.urlopen("http://localhost:5000/state")'`
+to read state from inside the container.  The node is then shown with
+`status: "isolated"` and `source: "exec"` in the UI.
+
+### Running the dashboard
+
+```powershell
+# 1. Start a 6-node cluster
+python cluster/ctl.py up --nodes 6
+
+# 2. Start the dashboard (host Python, port 8080)
+python -m dashboard
+
+# 3. Open http://127.0.0.1:8080 in your browser
+
+# 4. Tear down
+python cluster/ctl.py down --purge-data
+```
+
+Options:
+
+```
+python -m dashboard --port 8080 --compose docker-compose.yml
+```
+
+### Dashboard layout
+
+| Area | Description |
+|------|-------------|
+| **Header** | Cluster status badge (CONVERGED / DIVERGED), last convergence time, global totals |
+| **Node cards** | Per-node status, per-metric totals, 8-char state_hash chip (colour-coded), "via exec" tag |
+| **Stacked bar chart** | Each node's contribution per metric (metric selector dropdown) |
+| **Line chart** | Per-node `page_views` total over the last 60 seconds (divergence & reconvergence visible) |
+| **Control panel** | Send visit, load test, partition (checkbox groups), heal, isolate/rejoin, kill/revive |
+| **Event log** | Last 100 control actions with timestamp and result |
+
+<!-- Screenshot placeholder -->
+> **Screenshot**: _add `docs/dashboard-screenshot.png` after a live demo_
+
+### Dashboard API reference
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/cluster` | Poll all nodes; CRDT-merged global totals |
+| GET | `/api/history` | Last 300 cluster snapshots |
+| GET | `/api/events` | Last 100 control events |
+| POST | `/api/visit` | `{node, metric, n}` |
+| POST | `/api/load` | `{rate, duration, metric}` — background, non-blocking |
+| POST | `/api/partition` | `{groups: [[...],[...]]}` |
+| POST | `/api/heal` | Clear all partition rules |
+| POST | `/api/isolate` | `{node}` — docker network disconnect |
+| POST | `/api/rejoin` | `{node}` — docker network connect |
+| POST | `/api/kill` | `{node}` — SIGKILL |
+| POST | `/api/revive` | `{node}` — docker start |
+
+### Running tests
+
+```powershell
+# All tests (no Docker needed for dashboard tests)
+python -m pytest -q
+
+# Dashboard tests only
+python -m pytest tests/test_dashboard_api.py -v
+```

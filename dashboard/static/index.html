@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CRDT Analytics Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <!-- ========================================================= HEADER -->
+  <header>
+    <div class="header-left">
+      <h1>CRDT Analytics Tracker</h1>
+      <span id="status-badge" class="badge badge-unknown">CONNECTING…</span>
+      <span id="conv-time" class="conv-time"></span>
+    </div>
+    <div class="header-right global-totals">
+      <div class="global-metric">
+        <span class="metric-label">page_views</span>
+        <span id="global-pv" class="metric-value">—</span>
+      </div>
+      <div class="global-metric">
+        <span class="metric-label">clicks</span>
+        <span id="global-cl" class="metric-value">—</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===================================================== OFFLINE BANNER -->
+  <div id="offline-banner" class="offline-banner hidden">
+    ⚠ Dashboard server unreachable — retrying…
+  </div>
+
+  <!-- ===================================================== TOAST AREA -->
+  <div id="toast-container"></div>
+
+  <main>
+    <!-- ================================================= NODE CARDS -->
+    <section class="section">
+      <h2>Nodes</h2>
+      <div id="node-grid" class="node-grid"></div>
+    </section>
+
+    <!-- ================================================= CHARTS -->
+    <section class="section charts-section">
+      <div class="chart-block">
+        <div class="chart-header">
+          <h2>Contributions (stacked bar)</h2>
+          <select id="bar-metric-sel">
+            <option value="page_views">page_views</option>
+            <option value="clicks">clicks</option>
+          </select>
+        </div>
+        <canvas id="chart-bar"></canvas>
+      </div>
+      <div class="chart-block">
+        <h2>Node totals over time (line)</h2>
+        <canvas id="chart-line"></canvas>
+      </div>
+    </section>
+
+    <!-- ================================================= CONTROLS -->
+    <section class="section controls-section">
+      <h2>Control Panel</h2>
+      <div class="controls-grid">
+
+        <!-- Visit -->
+        <div class="ctrl-card">
+          <h3>Send Visit</h3>
+          <label>Node
+            <select id="visit-node"></select>
+          </label>
+          <label>Metric
+            <select id="visit-metric">
+              <option value="page_views">page_views</option>
+              <option value="clicks">clicks</option>
+            </select>
+          </label>
+          <label>n
+            <input id="visit-n" type="number" value="1" min="1" max="10000" />
+          </label>
+          <button id="btn-visit" class="btn btn-primary">Send Visit</button>
+        </div>
+
+        <!-- Load test -->
+        <div class="ctrl-card">
+          <h3>Load Test</h3>
+          <label>Rate (req/s, max 500)
+            <input id="load-rate" type="number" value="20" min="1" max="500" />
+          </label>
+          <label>Duration (s, max 60)
+            <input id="load-dur" type="number" value="5" min="1" max="60" />
+          </label>
+          <label>Metric
+            <select id="load-metric">
+              <option value="page_views">page_views</option>
+              <option value="clicks">clicks</option>
+            </select>
+          </label>
+          <button id="btn-load" class="btn btn-warning">Start Load</button>
+        </div>
+
+        <!-- Partition -->
+        <div class="ctrl-card ctrl-card-wide">
+          <h3>Partition (choose two groups)</h3>
+          <div class="partition-layout">
+            <div class="partition-group">
+              <strong>Group A</strong>
+              <div id="partition-group-a" class="checkbox-group"></div>
+            </div>
+            <div class="partition-group">
+              <strong>Group B</strong>
+              <div id="partition-group-b" class="checkbox-group"></div>
+            </div>
+          </div>
+          <div class="ctrl-row">
+            <button id="btn-partition" class="btn btn-danger">Partition</button>
+            <button id="btn-heal" class="btn btn-success">Heal All</button>
+          </div>
+        </div>
+
+        <!-- Isolate / Rejoin -->
+        <div class="ctrl-card">
+          <h3>Isolate / Rejoin</h3>
+          <label>Node
+            <select id="iso-node"></select>
+          </label>
+          <div class="ctrl-row">
+            <button id="btn-isolate" class="btn btn-danger">Isolate</button>
+            <button id="btn-rejoin" class="btn btn-success">Rejoin</button>
+          </div>
+        </div>
+
+        <!-- Kill / Revive -->
+        <div class="ctrl-card">
+          <h3>Kill / Revive</h3>
+          <label>Node
+            <select id="kill-node"></select>
+          </label>
+          <div class="ctrl-row">
+            <button id="btn-kill" class="btn btn-danger">Kill</button>
+            <button id="btn-revive" class="btn btn-success">Revive</button>
+          </div>
+        </div>
+
+      </div><!-- /controls-grid -->
+    </section>
+
+    <!-- ================================================= EVENT LOG -->
+    <section class="section">
+      <h2>Event Log</h2>
+      <div id="event-log" class="event-log"></div>
+    </section>
+  </main>
+
+  <script src="/static/vendor/chart.umd.min.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
